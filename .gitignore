@@ -1,0 +1,68 @@
+# Visual Studio
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+[Bb]uild/
+[Bb]uild[Ll]og.*
+*.log
+
+# NuGet
+*.nupkg
+packages/
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Visual Studio Code workspace
+*.code-workspace
+
+# Rider
+.idea/
+
+# Other files
+*.dbmdl
+*.bak
+*.orig
+*.tmp
+*.cache
+*.pdb
+*.mdb
+
+# .NET Core
+project.assets.json
+project.lock.json
+*.deps.json
+*.runtimeconfig.json
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IIS Express
+.vsconfig
+*.iiscfg
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Publish folders
+publish/
+App_Data/
+
+# User secrets
+secrets.json
+
+# Auto-generated files
+*.g.cs
+*.g.i.cs
