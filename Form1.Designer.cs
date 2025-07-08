@@ -17,6 +17,7 @@
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.lblDragAndDrop = new System.Windows.Forms.Label();
             this.splitContainer = new System.Windows.Forms.SplitContainer();
             this.pnlFileInfo = new System.Windows.Forms.Panel();
@@ -140,7 +141,7 @@
             this.lblConvertTo.ForeColor = System.Drawing.Color.White;
             this.lblConvertTo.Location = new System.Drawing.Point(15, 20);
             this.lblConvertTo.Name = "lblConvertTo";
-            this.lblConvertTo.Size = new System.Drawing.Size(183, 25);
+            this.lblConvertTo.Size = new System.Drawing.Size(188, 25);
             this.lblConvertTo.TabIndex = 1;
             this.lblConvertTo.Text = "Конвертировать в:";
             // 
@@ -167,15 +168,15 @@
             this.Controls.Add(this.splitContainer);
             this.Controls.Add(this.lblDragAndDrop);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Универсальный конвертер файлов";
+            this.Text = "XConvertor";
             this.DragDrop += new System.Windows.Forms.DragEventHandler(this.Form1_DragDrop);
             this.DragEnter += new System.Windows.Forms.DragEventHandler(this.Form1_DragEnter);
             this.splitContainer.Panel1.ResumeLayout(false);
             this.splitContainer.Panel2.ResumeLayout(false);
-            this.splitContainer.Panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).EndInit();
             this.splitContainer.ResumeLayout(false);
             this.pnlFileInfo.ResumeLayout(false);
