@@ -1,8 +1,4 @@
-PyQt5 
-Pillow 
-pydub 
-moviepy 
-pypdf2 
-pillow-heif 
-opencv-python-headless 
-pytesseract
+PyQt5==5.15.10
+Pillow==10.3.0
+moviepy==1.0.3
+pydub==0.25.1
