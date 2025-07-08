@@ -1,18 +1,23 @@
 import sys
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QIcon
 from gui.main_window import MainWindow
 
-def main():
-    # Создаем экземпляр QApplication
-    app = QApplication(sys.argv)
+def set_taskbar_icon():
 
-    # Создаем главное окно
-    window = MainWindow()
+    if sys.platform == 'win32':
+        import ctypes
+        myappid = 'mycompany.xconvertor.1.0' 
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
+def main():
+    app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon("assets/icons/logo.png"))
+    set_taskbar_icon()
     
-    # Показываем окно
+    window = MainWindow()
     window.show()
     
-    # Запускаем главный цикл приложения
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
