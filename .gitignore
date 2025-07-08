@@ -66,3 +66,24 @@ secrets.json
 # Auto-generated files
 *.g.cs
 *.g.i.cs
+
+#pycache
+__pycache__/
+gui/__pycache__/
+core/__pycache__/
+
+# Python specific
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyInstaller
+*.spec
+dist/
+build/
+
+# Pytest cache
+.cache
