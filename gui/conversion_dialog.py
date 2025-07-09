@@ -37,6 +37,9 @@ class ConversionDialog(QDialog):
         self.setModal(True)
         self.format_combo.addItems(get_output_formats(self.file_type))
         
+        self.format_combo.addItems(get_output_formats(self.file_type, self.filepaths[0]))
+
+
         layout.addWidget(self.info_label)
         layout.addWidget(self.file_list)
         format_layout.addWidget(self.format_label)

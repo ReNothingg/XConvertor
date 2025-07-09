@@ -3,6 +3,7 @@ from PIL import Image
 from pydub import AudioSegment
 from moviepy.editor import VideoFileClip
 import pytesseract
+from docx2pdf import convert as docx_to_pdf_convert
 from .pdf_tools import PDFTools
 
 class ConversionError(Exception):
@@ -14,6 +15,7 @@ class Converter:
 
     def convert(self, input_paths, output_path, output_format, options=None):
         first_input = input_paths[0]
+        file_type = self._get_file_type(first_input)
         
         try:
             if first_input.startswith(('http://youtube.com', 'https://youtube.com', 
@@ -24,7 +26,8 @@ class Converter:
                 else:
                     return self.youtube_downloader.download(first_input, output_path, 'mp4')
             file_type = self._get_file_type(first_input)
-            
+            if os.path.splitext(first_input)[1].lower() == '.docx':
+                return self.convert_from_docx(first_input, output_path, output_format)
             if output_format == 'PDF (из изображений)':
                 return self.pdf_tools.images_to_pdf(input_paths, output_path)
             if output_format == 'Объединить PDF':
@@ -55,6 +58,7 @@ class Converter:
         if ext in ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a']: return 'audio'
         if ext in ['.mp4', '.avi', '.mkv', '.mov', '.webm', '.wmv']: return 'video'
         if ext == '.pdf': return 'pdf'
+        if ext == '.docx': return 'docx' # Добавляем тип
         return 'unknown'
 
     def convert_image(self, input_path, output_path):
@@ -114,3 +118,12 @@ class Converter:
             return output_path
         except pytesseract.TesseractNotFoundError:
             raise ConversionError("Tesseract не найден. Установите его и добавьте в PATH.")
+        
+    def convert_from_docx(self, input_path, output_path, out_format):
+        if out_format == 'PDF':
+            try:
+                docx_to_pdf_convert(input_path, output_path)
+                return output_path
+            except Exception:
+                 raise ConversionError("Ошибка конвертации DOCX в PDF.\nУбедитесь, что у вас установлен MS Word или LibreOffice.")
+        raise ConversionError(f"Неподдерживаемый формат для DOCX: {out_format}")

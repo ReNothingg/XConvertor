@@ -19,8 +19,10 @@ def get_file_type(filepath):
     if extension == '.pdf': return 'pdf'
     return 'unknown'
 
-def get_output_formats(file_type):
+def get_output_formats(file_type, filepath):
     formats = []
+    extension = os.path.splitext(filepath)[1].lower()
+
     if file_type == 'image':
         formats.extend([ext.upper().replace('.', '') for ext in IMAGE_EXTENSIONS])
         formats.extend(SPECIAL_ACTIONS['image'])
@@ -34,6 +36,7 @@ def get_output_formats(file_type):
         formats.append('GIF (анимация)')
     elif file_type == 'pdf':
         formats.extend(SPECIAL_ACTIONS['pdf'])
-    elif file_type == 'document':
-        formats.extend(['PDF', 'TXT'])
+    elif extension == '.docx':
+        formats.append('PDF')
+        formats.append('TXT')
     return sorted(list(set(formats)))

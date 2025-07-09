@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, QTimer
 from core.file_utils import get_file_type
 from .conversion_dialog import ConversionDialog
 from .history_view import HistoryView
+from .youtube_dialog import YouTubeDialog
 import os
 import webbrowser
 from urllib.parse import quote
@@ -44,8 +45,11 @@ class MainWindow(QMainWindow):
         nav_layout = QHBoxLayout()
         self.home_button = QPushButton("Конвертер")
         self.history_button = QPushButton("История")
+        self.youtube_button = QPushButton("YouTube") # Новая кнопка
+
         nav_layout.addWidget(self.home_button)
         nav_layout.addWidget(self.history_button)
+        nav_layout.addWidget(self.youtube_button) # Добавляем на панель
         nav_layout.addStretch()
         
         main_layout.addLayout(nav_layout)
@@ -53,6 +57,8 @@ class MainWindow(QMainWindow):
         
         self.home_button.clicked.connect(lambda: self.stack.setCurrentIndex(0))
         self.history_button.clicked.connect(self.show_history)
+        self.youtube_button.clicked.connect(self.open_youtube_downloader) # Подключаем сигнал
+
 
         if len(sys.argv) > 1:
             QTimer.singleShot(100, lambda: self.process_dropped_files([sys.argv[1]]))
@@ -60,6 +66,11 @@ class MainWindow(QMainWindow):
     def show_history(self):
         self.history_widget.load_history()
         self.stack.setCurrentIndex(1)
+
+    def open_youtube_downloader(self):
+        dialog = YouTubeDialog(self)
+        dialog.exec_()
+
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
