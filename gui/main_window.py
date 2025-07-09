@@ -4,11 +4,12 @@ from PyQt5.QtCore import Qt, QTimer
 from core.file_utils import get_file_type
 from .conversion_dialog import ConversionDialog
 from .history_view import HistoryView
+from .youtube_dialog import YouTubeDialog
+
 import os
 import webbrowser
 from urllib.parse import quote
 import sys
-from .youtube_dialog import YouTubeDialog
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -45,18 +46,18 @@ class MainWindow(QMainWindow):
         nav_layout = QHBoxLayout()
         self.home_button = QPushButton("Конвертер")
         self.history_button = QPushButton("История")
+        self.youtube_button = QPushButton("YouTube")
+        nav_layout.addWidget(self.youtube_button)
         nav_layout.addWidget(self.home_button)
         nav_layout.addWidget(self.history_button)
         nav_layout.addStretch()
-
-        youtube_action = self.toolbar.addAction("YouTube")
-        youtube_action.triggered.connect(self.show_youtube_dialog)
         
         main_layout.addLayout(nav_layout)
         main_layout.addWidget(self.stack)
         
         self.home_button.clicked.connect(lambda: self.stack.setCurrentIndex(0))
         self.history_button.clicked.connect(self.show_history)
+        self.youtube_button.clicked.connect(self.show_youtube_dialog)
 
         if len(sys.argv) > 1:
             QTimer.singleShot(100, lambda: self.process_dropped_files([sys.argv[1]]))
