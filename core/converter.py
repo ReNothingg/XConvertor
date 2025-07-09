@@ -1,7 +1,8 @@
+from .youtube_downloader import YouTubeDownloader
+import os
 from PIL import Image
 from pydub import AudioSegment
-from moviepy.editor import VideoFileClip, CompositeVideoClip, vfx
-import os
+from moviepy.editor import VideoFileClip
 import pytesseract
 from .pdf_tools import PDFTools
 
@@ -11,12 +12,21 @@ class ConversionError(Exception):
 class Converter:
     def __init__(self):
         self.pdf_tools = PDFTools()
+        self.youtube_downloader = YouTubeDownloader()
 
     def convert(self, input_paths, output_path, output_format, options=None):
         first_input = input_paths[0]
-        file_type = self._get_file_type(first_input)
         
         try:
+            if first_input.startswith(('http://youtube.com', 'https://youtube.com', 
+                                     'http://www.youtube.com', 'https://www.youtube.com',
+                                     'youtube.com', 'www.youtube.com')):
+                if 'MP3' in output_format:
+                    return self.youtube_downloader.download(first_input, output_path, 'mp3')
+                else:
+                    return self.youtube_downloader.download(first_input, output_path, 'mp4')
+            file_type = self._get_file_type(first_input)
+            
             if output_format == 'PDF (из изображений)':
                 return self.pdf_tools.images_to_pdf(input_paths, output_path)
             if output_format == 'Объединить PDF':
@@ -36,6 +46,7 @@ class Converter:
                     return self.convert_video_to_gif(first_input, output_path)
                 else:
                     return self.convert_video(first_input, output_path)
+                    
             raise ConversionError(f"Неподдерживаемая комбинация конвертации.")
         except Exception as e:
             raise ConversionError(f"Ошибка: {e}")

@@ -8,6 +8,7 @@ import os
 import webbrowser
 from urllib.parse import quote
 import sys
+from .youtube_dialog import YouTubeDialog
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -47,6 +48,9 @@ class MainWindow(QMainWindow):
         nav_layout.addWidget(self.home_button)
         nav_layout.addWidget(self.history_button)
         nav_layout.addStretch()
+
+        youtube_action = self.toolbar.addAction("YouTube")
+        youtube_action.triggered.connect(self.show_youtube_dialog)
         
         main_layout.addLayout(nav_layout)
         main_layout.addWidget(self.stack)
@@ -113,3 +117,7 @@ class MainWindow(QMainWindow):
             query = f"how to convert {os.path.splitext(filepath)[1]} file"
             url = f"https://www.google.com/search?q={quote(query)}"
             webbrowser.open(url)
+
+    def show_youtube_dialog(self):
+        dialog = YouTubeDialog(self.converter, self.history, self)
+        dialog.exec_()

@@ -4,7 +4,6 @@ from PyQt5.QtGui import QIcon
 from gui.main_window import MainWindow
 
 def set_taskbar_icon():
-
     if sys.platform == 'win32':
         import ctypes
         myappid = 'mycompany.xconvertor.1.0' 
