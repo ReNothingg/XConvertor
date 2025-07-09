@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, 
-                             QTableWidget, QHeaderView, QAbstractItemView, QProgressBar, 
+                             QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView, QProgressBar, 
                              QLabel, QMessageBox, QFileDialog)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from core.youtube_downloader import YouTubeDownloader, DownloadWorker
@@ -107,8 +107,18 @@ class YouTubeDialog(QDialog):
             QMessageBox.warning(self, "Ошибка", "Пожалуйста, выберите поток для скачивания.")
             return
             
-        selected_index = selected_rows[0].row()
-        stream_to_download = self.video_info['formats'][selected_index]
+        original_index = -1
+        selected_quality = self.streams_table.item(selected_rows[0].row(), 1).text()
+        for i, fmt in enumerate(self.video_info['formats']):
+            if fmt.get('format_note') == selected_quality:
+                original_index = i
+                break
+        
+        if original_index == -1:
+             QMessageBox.critical(self, "Ошибка", "Не удалось найти выбранный формат.")
+             return
+
+        stream_to_download = self.video_info['formats'][original_index]
         format_id = stream_to_download['format_id']
         
         title = self.video_info.get('title', 'video').replace('/', '_').replace('\\', '_')
