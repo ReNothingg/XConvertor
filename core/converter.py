@@ -1,4 +1,3 @@
-from .youtube_downloader import YouTubeDownloader
 import os
 from PIL import Image
 from pydub import AudioSegment
@@ -12,7 +11,6 @@ class ConversionError(Exception):
 class Converter:
     def __init__(self):
         self.pdf_tools = PDFTools()
-        self.youtube_downloader = YouTubeDownloader()
 
     def convert(self, input_paths, output_path, output_format, options=None):
         first_input = input_paths[0]
