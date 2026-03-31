@@ -10,6 +10,11 @@ import webbrowser
 from urllib.parse import quote
 import sys
 
+
+DROP_HINT_TEXT = "\n\nПеретащите файлы или папки сюда\n\n"
+DROP_ACTIVE_TEXT = "\n\nОтпустите, чтобы добавить\n\n"
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -19,7 +24,7 @@ class MainWindow(QMainWindow):
         self.setAcceptDrops(True)
 
         try:
-            with open("assets/styles/dark_theme.qss", "r") as f:
+            with open("assets/styles/dark_theme.qss", "r", encoding='utf-8') as f:
                 self.setStyleSheet(f.read())
         except FileNotFoundError:
             print("WARNING: Stylesheet not found.")
@@ -32,7 +37,7 @@ class MainWindow(QMainWindow):
         
         self.drop_widget = QWidget()
         drop_layout = QVBoxLayout(self.drop_widget)
-        self.drop_area = QLabel("\n\nПеретащите файлы сюда\n\n")
+        self.drop_area = QLabel(DROP_HINT_TEXT)
         self.drop_area.setAlignment(Qt.AlignCenter)
         self.drop_area.setObjectName("DropArea")
         drop_layout.addWidget(self.drop_area)
@@ -61,7 +66,7 @@ class MainWindow(QMainWindow):
 
 
         if len(sys.argv) > 1:
-            QTimer.singleShot(100, lambda: self.process_dropped_files([sys.argv[1]]))
+            QTimer.singleShot(100, lambda: self.process_dropped_files(sys.argv[1:]))
 
     def show_history(self):
         self.history_widget.load_history()
@@ -75,37 +80,57 @@ class MainWindow(QMainWindow):
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
-            self.drop_area.setText("\n\nОтпустите, чтобы добавить\n\n")
+            self.drop_area.setText(DROP_ACTIVE_TEXT)
         else:
             event.ignore()
 
     def dragLeaveEvent(self, event):
-        self.drop_area.setText("\n\nПеретащите файлы сюда\n\n")
+        self.drop_area.setText(DROP_HINT_TEXT)
 
     def dropEvent(self, event):
-        self.drop_area.setText("\n\nПеретащите файлы сюда\n\n")
+        self.drop_area.setText(DROP_HINT_TEXT)
         filepaths = [u.toLocalFile() for u in event.mimeData().urls()]
         self.process_dropped_files(filepaths)
 
+    def _expand_input_paths(self, filepaths):
+        expanded_paths = []
+
+        for path in filepaths:
+            if os.path.isfile(path):
+                expanded_paths.append(path)
+                continue
+
+            if os.path.isdir(path):
+                for root, _, files in os.walk(path):
+                    for filename in sorted(files):
+                        expanded_paths.append(os.path.join(root, filename))
+
+        return expanded_paths
+
     def process_dropped_files(self, filepaths):
-        valid_files = [p for p in filepaths if os.path.isfile(p)]
+        valid_files = self._expand_input_paths(filepaths)
         
         if not valid_files:
-            QMessageBox.warning(self, "Ошибка", "Можно обрабатывать только файлы.")
+            QMessageBox.warning(self, "Ошибка", "Не удалось найти файлы для обработки.")
             return
 
-        first_file_type = get_file_type(valid_files[0])
-        
-        if first_file_type == 'unknown':
+        if len(valid_files) == 1 and get_file_type(valid_files[0]) == 'unknown':
             self.handle_unknown_file(valid_files[0])
             return
-            
-        for path in valid_files[1:]:
+
+        supported_files = [path for path in valid_files if get_file_type(path) != 'unknown']
+        if not supported_files:
+            QMessageBox.warning(self, "Ошибка", "Среди выбранных элементов нет поддерживаемых файлов.")
+            return
+
+        first_file_type = get_file_type(supported_files[0])
+        
+        for path in supported_files[1:]:
             if get_file_type(path) != first_file_type:
                 QMessageBox.warning(self, "Ошибка", "Все файлы в пакете должны быть одного типа (например, только изображения).")
                 return
         
-        dialog = ConversionDialog(valid_files, self)
+        dialog = ConversionDialog(supported_files, self)
         dialog.exec_()
 
     def handle_unknown_file(self, filepath):

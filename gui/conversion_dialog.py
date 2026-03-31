@@ -1,11 +1,14 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QLabel, QComboBox, 
+from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QLabel, QComboBox,
                              QPushButton, QFileDialog, QHBoxLayout, QMessageBox,
                              QListWidget, QAbstractItemView)
-from PyQt5.QtCore import Qt
 import os
 from core.file_utils import get_output_formats, get_file_type
 from core.converter import Converter, ConversionError
 from core.conversion_history import ConversionHistory
+
+
+PDF_DIRECTORY_ACTIONS = {'JPG', 'PNG', 'Разделить PDF'}
+
 
 class ConversionDialog(QDialog):
     def __init__(self, filepaths, parent=None):
@@ -35,9 +38,14 @@ class ConversionDialog(QDialog):
         self.convert_button = QPushButton("Конвертировать")
         
         self.setModal(True)
-        self.format_combo.addItems(get_output_formats(self.file_type))
-        
-        self.format_combo.addItems(get_output_formats(self.file_type, self.filepaths[0]))
+        self.available_actions = get_output_formats(self.file_type, self.filepaths[0])
+
+        if self.available_actions:
+            self.format_combo.addItems(self.available_actions)
+        else:
+            self.format_combo.addItem("Нет доступных действий")
+            self.format_combo.setEnabled(False)
+            self.convert_button.setEnabled(False)
 
 
         layout.addWidget(self.info_label)
@@ -56,6 +64,9 @@ class ConversionDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
 
     def start_conversion(self):
+        if not self.available_actions:
+            return
+
         selected_action = self.format_combo.currentText()
         
         if len(self.filepaths) > 1 and not any(action in selected_action for action in ['Объединить', 'PDF (из изображений)']):
@@ -64,22 +75,18 @@ class ConversionDialog(QDialog):
             self.run_single_conversion(selected_action)
 
     def run_single_conversion(self, action):
-        output_ext = self.get_extension_from_action(action)
-        base_name = os.path.splitext(os.path.basename(self.filepaths[0]))[0]
-        output_filename = f"{base_name}.{output_ext}"
-        
-        output_path, _ = QFileDialog.getSaveFileName(self, "Сохранить файл", output_filename)
-        
-        if not output_path:
+        output_target = self.select_output_target(action)
+        if not output_target:
             return
             
         try:
-            result_path = self.converter.convert(self.filepaths, output_path, action)
-            self.history.add_entry(self.filepaths, result_path, "Успех")
-            QMessageBox.information(self, "Успех", f"Файл успешно сохранен в:\n{result_path}")
+            result = self.converter.convert(self.filepaths, output_target, action)
+            history_output = output_target if isinstance(result, list) else result
+            self.history.add_entry(self.filepaths, history_output, "Успех")
+            QMessageBox.information(self, "Успех", self.build_success_message(result, output_target))
             self.accept()
         except ConversionError as e:
-            self.history.add_entry(self.filepaths, output_path, f"Ошибка: {e}")
+            self.history.add_entry(self.filepaths, output_target, f"Ошибка: {e}")
             QMessageBox.critical(self, "Ошибка конвертации", str(e))
 
     def run_batch_conversion(self, action):
@@ -87,22 +94,72 @@ class ConversionDialog(QDialog):
         if not output_dir:
             return
 
-        # TODO: Implement a proper progress dialog
+        success_count = 0
+        failed_files = []
+
         for path in self.filepaths:
             try:
-                output_ext = self.get_extension_from_action(action)
-                base_name = os.path.splitext(os.path.basename(path))[0]
-                output_path = os.path.join(output_dir, f"{base_name}.{output_ext}")
-                self.converter.convert([path], output_path, action)
-                self.history.add_entry([path], output_path, "Успех")
+                output_target = self.get_batch_output_target(path, output_dir, action)
+                result = self.converter.convert([path], output_target, action)
+                history_output = output_target if isinstance(result, list) else result
+                self.history.add_entry([path], history_output, "Успех")
+                success_count += 1
             except ConversionError as e:
+                failed_files.append(f"{os.path.basename(path)}: {e}")
                 self.history.add_entry([path], "", f"Ошибка: {e}")
-                continue
         
-        QMessageBox.information(self, "Успех", f"Пакетная конвертация завершена.\nРезультаты в папке:\n{output_dir}")
+        message = (
+            "Пакетная конвертация завершена.\n"
+            f"Успешно: {success_count}\n"
+            f"С ошибками: {len(failed_files)}\n"
+            f"Результаты в папке:\n{output_dir}"
+        )
+
+        if failed_files:
+            preview = '\n'.join(failed_files[:3])
+            message = f"{message}\n\nПервые ошибки:\n{preview}"
+            QMessageBox.warning(self, "Пакетная конвертация завершена", message)
+        else:
+            QMessageBox.information(self, "Успех", message)
+        
         self.accept()
 
+    def is_directory_output_action(self, action):
+        return self.file_type == 'pdf' and action in PDF_DIRECTORY_ACTIONS
+
+    def select_output_target(self, action):
+        if self.is_directory_output_action(action):
+            return QFileDialog.getExistingDirectory(self, "Выберите папку для сохранения результатов")
+
+        output_ext = self.get_extension_from_action(action)
+        base_name = self.get_default_base_name(action)
+        output_filename = f"{base_name}.{output_ext}"
+        output_path, _ = QFileDialog.getSaveFileName(self, "Сохранить файл", output_filename)
+        return output_path
+
+    def get_default_base_name(self, action):
+        if action == 'Объединить PDF':
+            return 'merged'
+        if action == 'PDF (из изображений)' and len(self.filepaths) > 1:
+            return 'images_to_pdf'
+        return os.path.splitext(os.path.basename(self.filepaths[0]))[0]
+
+    def get_batch_output_target(self, path, output_dir, action):
+        if self.is_directory_output_action(action):
+            return output_dir
+
+        output_ext = self.get_extension_from_action(action)
+        base_name = os.path.splitext(os.path.basename(path))[0]
+        return os.path.join(output_dir, f"{base_name}.{output_ext}")
+
+    def build_success_message(self, result, output_target):
+        if isinstance(result, list):
+            return f"Создано файлов: {len(result)}\nРезультаты сохранены в:\n{output_target}"
+        return f"Файл успешно сохранен в:\n{result}"
+
     def get_extension_from_action(self, action):
+        if action in {'PDF (из изображений)', 'Объединить PDF', 'Разделить PDF'}:
+            return 'pdf'
         if 'аудио' in action:
             return action.split(' ')[0].lower()
         if 'GIF' in action:

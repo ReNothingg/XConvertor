@@ -9,12 +9,15 @@ class ConversionHistory:
         if not os.path.exists('history'):
             os.makedirs('history')
         if not os.path.exists(HISTORY_FILE):
-            with open(HISTORY_FILE, 'w') as f:
-                json.dump([], f)
+            self._write_history([])
+
+    def _write_history(self, history):
+        with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(history, f, ensure_ascii=False, indent=4)
 
     def get_history(self):
         try:
-            with open(HISTORY_FILE, 'r') as f:
+            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except (IOError, json.JSONDecodeError):
             return []
@@ -28,6 +31,7 @@ class ConversionHistory:
             "status": status
         }
         history.insert(0, entry)
-        with open(HISTORY_FILE, 'w') as f:
-            json.dump(history, f, indent=4)
-            
+        self._write_history(history)
+
+    def clear_history(self):
+        self._write_history([])

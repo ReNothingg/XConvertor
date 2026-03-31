@@ -1,5 +1,7 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, 
-                             QPushButton, QHeaderView, QHBoxLayout)
+import os
+
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
+                             QPushButton, QHeaderView, QHBoxLayout, QMessageBox)
 from PyQt5.QtCore import Qt
 from core.conversion_history import ConversionHistory
 
@@ -33,11 +35,14 @@ class HistoryView(QWidget):
         self.table.setRowCount(len(history_data))
         
         for row, item in enumerate(history_data):
-            sources = ", ".join(item.get("sources", []))
+            sources = ", ".join(os.path.basename(path) for path in item.get("sources", []))
+            output = item.get("output", "")
+            if isinstance(output, list):
+                output = ", ".join(output)
             
             self.table.setItem(row, 0, QTableWidgetItem(item.get("timestamp", "")))
             self.table.setItem(row, 1, QTableWidgetItem(sources))
-            self.table.setItem(row, 2, QTableWidgetItem(item.get("output", "")))
+            self.table.setItem(row, 2, QTableWidgetItem(output))
             
             status_item = QTableWidgetItem(item.get("status", ""))
             if "Ошибка" in item.get("status", ""):
@@ -47,6 +52,16 @@ class HistoryView(QWidget):
             self.table.setItem(row, 3, status_item)
 
     def clear_history(self):
-        # Placeholder for clearing history logic
-        pass
+        confirmation = QMessageBox.question(
+            self,
+            "Очистить историю",
+            "Удалить всю историю конвертаций?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if confirmation != QMessageBox.Yes:
+            return
+
+        self.history_manager.clear_history()
+        self.load_history()
     

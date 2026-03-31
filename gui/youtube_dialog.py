@@ -1,9 +1,8 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, 
                              QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView, QProgressBar, 
                              QLabel, QMessageBox, QFileDialog)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread
 from core.youtube_downloader import YouTubeDownloader, DownloadWorker
-import os
 
 class YouTubeDialog(QDialog):
     def __init__(self, parent=None):
@@ -14,6 +13,7 @@ class YouTubeDialog(QDialog):
         self.downloader = YouTubeDownloader()
         self.video_info = None
         self.current_url = ""
+        self.available_formats = []
 
         main_layout = QVBoxLayout(self)
         url_layout = QHBoxLayout()
@@ -71,12 +71,15 @@ class YouTubeDialog(QDialog):
     def populate_table(self):
         formats = self.video_info.get('formats', [])
         self.streams_table.setRowCount(0)
+        self.available_formats = []
         
         for stream in formats:
-            if not stream.get('url'): continue
+            if not stream.get('url'):
+                continue
 
             row_position = self.streams_table.rowCount()
             self.streams_table.insertRow(row_position)
+            self.available_formats.append(stream)
             
             vcodec = stream.get('vcodec', 'none')
             acodec = stream.get('acodec', 'none')
@@ -107,18 +110,12 @@ class YouTubeDialog(QDialog):
             QMessageBox.warning(self, "Ошибка", "Пожалуйста, выберите поток для скачивания.")
             return
             
-        original_index = -1
-        selected_quality = self.streams_table.item(selected_rows[0].row(), 1).text()
-        for i, fmt in enumerate(self.video_info['formats']):
-            if fmt.get('format_note') == selected_quality:
-                original_index = i
-                break
-        
-        if original_index == -1:
-             QMessageBox.critical(self, "Ошибка", "Не удалось найти выбранный формат.")
-             return
+        selected_row = selected_rows[0].row()
+        if selected_row >= len(self.available_formats):
+            QMessageBox.critical(self, "Ошибка", "Не удалось найти выбранный формат.")
+            return
 
-        stream_to_download = self.video_info['formats'][original_index]
+        stream_to_download = self.available_formats[selected_row]
         format_id = stream_to_download['format_id']
         
         title = self.video_info.get('title', 'video').replace('/', '_').replace('\\', '_')

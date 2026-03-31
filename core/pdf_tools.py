@@ -1,3 +1,6 @@
+import os
+from io import BytesIO
+
 from PyPDF2 import PdfReader, PdfWriter
 from PIL import Image
 import docx
@@ -10,7 +13,7 @@ class PDFTools:
         with open(pdf_path, 'rb') as f:
             reader = PdfReader(f)
             for page in reader.pages:
-                text += page.extract_text() + '\n'
+                text += (page.extract_text() or '') + '\n'
         
         doc = docx.Document()
         doc.add_paragraph(text)
@@ -18,14 +21,30 @@ class PDFTools:
         return docx_path
 
     def to_images(self, pdf_path, output_folder, fmt='jpeg'):
+        os.makedirs(output_folder, exist_ok=True)
         paths = []
         reader = PdfReader(pdf_path)
+
+        output_ext = 'jpg' if fmt in {'jpg', 'jpeg'} else fmt
+        image_format = 'JPEG' if output_ext == 'jpg' else output_ext.upper()
+        base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+
         for i, page in enumerate(reader.pages):
-            for image_file_object in page.images:
-                path = f"{output_folder}/page_{i+1}_{image_file_object.name}"
-                with open(path, "wb") as fp:
-                    fp.write(image_file_object.data)
+            for image_index, image_file_object in enumerate(page.images, start=1):
+                with Image.open(BytesIO(image_file_object.data)) as image:
+                    if output_ext == 'jpg' and image.mode in ('RGBA', 'P'):
+                        image = image.convert('RGB')
+
+                    path = os.path.join(
+                        output_folder,
+                        f"{base_name}_page_{i + 1}_{image_index}.{output_ext}",
+                    )
+                    image.save(path, format=image_format)
                     paths.append(path)
+
+        if not paths:
+            raise ValueError("В PDF не найдено встроенных изображений для экспорта.")
+
         return paths
 
     def merge_pdfs(self, pdf_paths, output_path):
@@ -37,6 +56,24 @@ class PDFTools:
         with open(output_path, 'wb') as f:
             writer.write(f)
         return output_path
+
+    def split_pdf(self, pdf_path, output_folder):
+        os.makedirs(output_folder, exist_ok=True)
+
+        reader = PdfReader(pdf_path)
+        base_name = os.path.splitext(os.path.basename(pdf_path))[0]
+        paths = []
+
+        for page_number, page in enumerate(reader.pages, start=1):
+            writer = PdfWriter()
+            writer.add_page(page)
+
+            output_path = os.path.join(output_folder, f"{base_name}_page_{page_number}.pdf")
+            with open(output_path, 'wb') as f:
+                writer.write(f)
+            paths.append(output_path)
+
+        return paths
 
     def images_to_pdf(self, image_paths, output_path):
         c = canvas.Canvas(output_path, pagesize=letter)
